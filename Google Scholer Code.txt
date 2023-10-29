@@ -1,0 +1,88 @@
+from bs4 import BeautifulSoup
+import requests
+import pandas as pd
+
+LINKS = []
+Titles = []
+Author = []
+
+cited_numbers = []
+for i in range(3):
+    
+    url = "https://scholar.google.com/scholar?start="+str(i*10)+"&q=web+scraping&hl=en&as_sdt=0,5"
+    Header = ({"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"})
+#     print(url)
+    r = requests.get(url, headers = Header)
+    soup = BeautifulSoup(r.text, 'lxml')
+
+#     print(soup)
+    links = soup.find_all("h3", class_="gs_rt")
+#     print("=======",links)
+    for i in links:
+        link = i.find("a")
+        if link:
+            href = link.get("href")
+            LINKS.append(href)
+#             print(href)
+        else:
+            pass
+    print(len(LINKS))
+    
+#==============================================================
+    elements = soup.find_all('h3', class_='gs_rt')
+    
+    for element in elements:
+        a_tag = element.find('a')
+        if a_tag:
+            # Retrieve the text from the <a> tag
+            link_text = a_tag.get_text()
+            Titles.append(link_text)
+#     print(Titles)
+    print(len(Titles))
+    
+#==============================================================
+
+    div_elements = soup.find_all('div', class_='gs_a')
+    
+    for div in div_elements:
+        # Find all the <a> elements within the <div>
+        a_elements = div.find_all('a')
+
+        # Extract and print the text from the <a> elements or the text from the <div> if there are no <a> elements
+        if a_elements:
+            text = [a.get_text() for a in a_elements]
+    #         print('Text:', ', '.join(text))
+            Author.append(text)
+        else:
+            # If there are no <a> elements, extract and print the text from the <div>
+            r = [div.get_text()]
+            Author.append(r)
+#     print(len(Author))
+    print(len(Author))
+    
+    div_elements = soup.find_all("div", class_="gs_fl gs_flb")
+    text_list = []   
+    for div_element in div_elements:
+        a_tags = div_element.find_all("a")
+        a_text_list = [a.get_text() for a in a_tags]
+        text_list.extend(a_text_list)
+#     print(lentext_list)
+    
+    import re
+
+    text_list1 = text_list
+    # Regular expression to extract "Cited by" number
+    pattern = r'Cited by (\d+)'
+
+    
+    for text in text_list1:
+        match = re.search(pattern, text)
+        if match:
+            cited_numbers.append(int(match.group(1)))
+
+    print(len(cited_numbers))
+    df = pd.DataFrame({"URL":LINKS, "Title":Titles, "Authors":Author, "Cited No.":cited_numbers})
+#     print(df)
+print(df)
+df.index = df.index + 1    
+df.to_csv("E:/Project/Web-Scapping/Google-Scholar-dataset", index=False, header=True)
